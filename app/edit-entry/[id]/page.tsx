@@ -16,7 +16,7 @@ interface EditEntryPageProps {
   };
 }
 
-export default function EditEntryPage({ params }: { params: Record<string, string> }) {
+export default function EditEntryPage({ params }: EditEntryPageProps) {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
