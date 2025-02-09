@@ -1,3 +1,4 @@
+// app/edit-entry/[id]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +12,56 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { revalidatePath } from 'next/cache';
+import { auth } from '@clerk/nextjs';  // Or your auth provider
+
+interface JournalEntry {
+  userInput: string;
+  aiStory: string;
+  // ... other properties if any
+}
+
+// Server Action to Fetch Entry
+async function fetchEntryData(id: string, user: any): Promise<JournalEntry | null> {
+  'use server';
+  if (!user) return null;
+
+  try {
+    const entryRef = doc(db, `users/${user.uid}/journalEntries/${id}`);
+    const entrySnap = await getDoc(entryRef);
+
+    if (entrySnap.exists()) {
+      return entrySnap.data() as JournalEntry;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching entry:', error);
+    return null;
+  }
+}
+
+// Server Action to Handle Form Submission
+async function handleUpdateEntry(id: string, userInput: string, user: any): Promise<void> {
+  'use server';
+  if (!user) return;
+
+  try {
+    const aiStory = await generateStory(userInput);
+    const entryRef = doc(db, `users/${user.uid}/journalEntries/${id}`);
+
+    await updateDoc(entryRef, {
+      userInput,
+      aiStory,
+    });
+
+    revalidatePath('/');
+    toast.success('Journal entry updated successfully');
+  } catch (error) {
+    console.error('Error updating entry:', error);
+    toast.error('Failed to update journal entry');
+  }
+}
 
 export default function EditEntryPage({
   params,
@@ -24,15 +75,17 @@ export default function EditEntryPage({
   const router = useRouter();
 
   useEffect(() => {
-    const fetchEntry = async () => {
-      if (!user) return;
+    const loadEntry = async () => {
+      setInitialLoading(true);
+      if (!user) {
+        setInitialLoading(false);
+        return; // Or handle unauthenticated state
+      }
 
       try {
-        const entryRef = doc(db, `users/${user.uid}/journalEntries/${params.id}`);
-        const entrySnap = await getDoc(entryRef);
-        
-        if (entrySnap.exists()) {
-          setUserInput(entrySnap.data().userInput);
+        const entry = await fetchEntryData(params.id, user);
+        if (entry) {
+          setUserInput(entry.userInput);
         } else {
           toast.error('Entry not found');
           router.push('/');
@@ -40,12 +93,13 @@ export default function EditEntryPage({
       } catch (error) {
         console.error('Error fetching entry:', error);
         toast.error('Failed to fetch entry');
+        router.push('/');
       } finally {
         setInitialLoading(false);
       }
     };
 
-    fetchEntry();
+    loadEntry();
   }, [user, params.id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,15 +108,7 @@ export default function EditEntryPage({
 
     setLoading(true);
     try {
-      const aiStory = await generateStory(userInput);
-      const entryRef = doc(db, `users/${user.uid}/journalEntries/${params.id}`);
-      
-      await updateDoc(entryRef, {
-        userInput,
-        aiStory,
-      });
-
-      toast.success('Journal entry updated successfully');
+      await handleUpdateEntry(params.id, userInput, user);
       router.push('/');
     } catch (error) {
       console.error('Error updating entry:', error);
