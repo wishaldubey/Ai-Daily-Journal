@@ -10,7 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-export default function EditEntryPage({ params }: { params: { id: string } }) {
+interface EditEntryPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function EditEntryPage({ params }: EditEntryPageProps) {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
