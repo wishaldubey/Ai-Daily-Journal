@@ -1,55 +1,50 @@
-'use client';
+use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
-import { fetchEntryData, handleUpdateEntry } from './actions'; // Import server actions
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { generateStory } from "@/lib/gemini";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-// Update the type definition to match the structure for the new App directory
-interface EditEntryPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function EditEntryPage({ params }: EditEntryPageProps) {
-  const [userInput, setUserInput] = useState('');
+export default function EditEntryPage({ params }: { params: { id: string } }) {
+  const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const loadEntry = async () => {
-      setInitialLoading(true);
-      if (!user) {
-        setInitialLoading(false);
-        return;
-      }
+    const fetchEntry = async () => {
+      if (!user) return;
 
       try {
-        const entry = await fetchEntryData(params.id, user);
-        if (entry) {
-          setUserInput(entry.userInput);
+        const entryRef = doc(
+          db,
+          `users/${user.uid}/journalEntries/${params.id}`
+        );
+        const entrySnap = await getDoc(entryRef);
+
+        if (entrySnap.exists()) {
+          setUserInput(entrySnap.data().userInput);
         } else {
-          toast.error('Entry not found');
-          router.push('/');
+          toast.error("Entry not found");
+          router.push("/");
         }
       } catch (error) {
-        console.error('Error fetching entry:', error);
-        toast.error('Failed to fetch entry');
-        router.push('/');
+        console.error("Error fetching entry:", error);
+        toast.error("Failed to fetch entry");
       } finally {
         setInitialLoading(false);
       }
     };
 
-    loadEntry();
+    fetchEntry();
   }, [user, params.id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,12 +53,19 @@ export default function EditEntryPage({ params }: EditEntryPageProps) {
 
     setLoading(true);
     try {
-      await handleUpdateEntry(params.id, userInput, user);
-      toast.success('Journal entry updated successfully');
-      router.push('/');
+      const aiStory = await generateStory(userInput);
+      const entryRef = doc(db, `users/${user.uid}/journalEntries/${params.id}`);
+
+      await updateDoc(entryRef, {
+        userInput,
+        aiStory,
+      });
+
+      toast.success("Journal entry updated successfully");
+      router.push("/");
     } catch (error) {
-      console.error('Error updating entry:', error);
-      toast.error('Failed to update journal entry');
+      console.error("Error updating entry:", error);
+      toast.error("Failed to update journal entry");
     } finally {
       setLoading(false);
     }
@@ -98,7 +100,7 @@ export default function EditEntryPage({ params }: EditEntryPageProps) {
             </div>
             <Button type="submit" disabled={loading || !userInput.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? 'Updating Entry...' : 'Update Entry'}
+              {loading ? "Updating Entry..." : "Update Entry"}
             </Button>
           </form>
         </CardContent>
