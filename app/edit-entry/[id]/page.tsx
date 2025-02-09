@@ -1,73 +1,16 @@
-// app/edit-entry/[id]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { generateStory } from '@/lib/gemini';
+import { fetchEntryData, handleUpdateEntry } from './actions'; // Import server actions
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { revalidatePath } from 'next/cache';
-import { auth } from '@clerk/nextjs';  // Or your auth provider
 
-interface JournalEntry {
-  userInput: string;
-  aiStory: string;
-  // ... other properties if any
-}
-
-// Server Action to Fetch Entry
-async function fetchEntryData(id: string, user: any): Promise<JournalEntry | null> {
-  'use server';
-  if (!user) return null;
-
-  try {
-    const entryRef = doc(db, `users/${user.uid}/journalEntries/${id}`);
-    const entrySnap = await getDoc(entryRef);
-
-    if (entrySnap.exists()) {
-      return entrySnap.data() as JournalEntry;
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching entry:', error);
-    return null;
-  }
-}
-
-// Server Action to Handle Form Submission
-async function handleUpdateEntry(id: string, userInput: string, user: any): Promise<void> {
-  'use server';
-  if (!user) return;
-
-  try {
-    const aiStory = await generateStory(userInput);
-    const entryRef = doc(db, `users/${user.uid}/journalEntries/${id}`);
-
-    await updateDoc(entryRef, {
-      userInput,
-      aiStory,
-    });
-
-    revalidatePath('/');
-    toast.success('Journal entry updated successfully');
-  } catch (error) {
-    console.error('Error updating entry:', error);
-    toast.error('Failed to update journal entry');
-  }
-}
-
-export default function EditEntryPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EditEntryPage({ params }: { params: { id: string } }) {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -79,7 +22,7 @@ export default function EditEntryPage({
       setInitialLoading(true);
       if (!user) {
         setInitialLoading(false);
-        return; // Or handle unauthenticated state
+        return;
       }
 
       try {
@@ -109,6 +52,7 @@ export default function EditEntryPage({
     setLoading(true);
     try {
       await handleUpdateEntry(params.id, userInput, user);
+      toast.success('Journal entry updated successfully');
       router.push('/');
     } catch (error) {
       console.error('Error updating entry:', error);
@@ -135,9 +79,7 @@ export default function EditEntryPage({
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Update your entry
-              </label>
+              <label className="text-sm font-medium">Update your entry</label>
               <Textarea
                 placeholder="Share your thoughts, experiences, or feelings..."
                 value={userInput}
