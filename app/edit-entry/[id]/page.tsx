@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
+// Update the type definition to match the structure for the new App directory
 interface EditEntryPageProps {
   params: {
     id: string;
