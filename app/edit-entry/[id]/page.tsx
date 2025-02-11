@@ -1,19 +1,26 @@
-use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { generateStory } from "@/lib/gemini";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { generateStory } from '@/lib/gemini';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
-export default function EditEntryPage({ params }: { params: { id: string } }) {
-  const [userInput, setUserInput] = useState("");
+interface EditEntryPageProps {
+  params: {
+    id: string;
+  };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+export default function EditEntryPage({ params }: EditEntryPageProps) {
+  const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const { user } = useAuth();
@@ -24,21 +31,18 @@ export default function EditEntryPage({ params }: { params: { id: string } }) {
       if (!user) return;
 
       try {
-        const entryRef = doc(
-          db,
-          `users/${user.uid}/journalEntries/${params.id}`
-        );
+        const entryRef = doc(db, `users/${user.uid}/journalEntries/${params.id}`);
         const entrySnap = await getDoc(entryRef);
-
+        
         if (entrySnap.exists()) {
           setUserInput(entrySnap.data().userInput);
         } else {
-          toast.error("Entry not found");
-          router.push("/");
+          toast.error('Entry not found');
+          router.push('/');
         }
       } catch (error) {
-        console.error("Error fetching entry:", error);
-        toast.error("Failed to fetch entry");
+        console.error('Error fetching entry:', error);
+        toast.error('Failed to fetch entry');
       } finally {
         setInitialLoading(false);
       }
@@ -55,17 +59,17 @@ export default function EditEntryPage({ params }: { params: { id: string } }) {
     try {
       const aiStory = await generateStory(userInput);
       const entryRef = doc(db, `users/${user.uid}/journalEntries/${params.id}`);
-
+      
       await updateDoc(entryRef, {
         userInput,
         aiStory,
       });
 
-      toast.success("Journal entry updated successfully");
-      router.push("/");
+      toast.success('Journal entry updated successfully');
+      router.push('/');
     } catch (error) {
-      console.error("Error updating entry:", error);
-      toast.error("Failed to update journal entry");
+      console.error('Error updating entry:', error);
+      toast.error('Failed to update journal entry');
     } finally {
       setLoading(false);
     }
@@ -88,7 +92,9 @@ export default function EditEntryPage({ params }: { params: { id: string } }) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Update your entry</label>
+              <label className="text-sm font-medium">
+                Update your entry
+              </label>
               <Textarea
                 placeholder="Share your thoughts, experiences, or feelings..."
                 value={userInput}
@@ -100,7 +106,7 @@ export default function EditEntryPage({ params }: { params: { id: string } }) {
             </div>
             <Button type="submit" disabled={loading || !userInput.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Updating Entry..." : "Update Entry"}
+              {loading ? 'Updating Entry...' : 'Update Entry'}
             </Button>
           </form>
         </CardContent>
