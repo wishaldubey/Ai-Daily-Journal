@@ -2,8 +2,10 @@
 import 'next';
 
 declare module 'next' {
-  export type PageProps = {
-    params?: Record<string, string>;
-    searchParams?: Record<string, string | string[]>;
+  type Params = Record<string, string | string[]>;
+  
+  type PageProps = {
+    params?: Params;
+    searchParams?: Params;
   };
 }
