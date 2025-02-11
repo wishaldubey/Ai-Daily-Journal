@@ -110,4 +110,4 @@ export default function EditEntryPage({
       </Card>
     </div>
   );
-} as any; // Type assertion to bypass Next.js type conflict
+}
