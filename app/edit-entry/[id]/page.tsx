@@ -12,12 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-interface EditEntryPageProps {
+export default function EditEntryPage({
+  params,
+}: {
   params: { id: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
-
-export default function EditEntryPage({ params }: EditEntryPageProps) {
+}) {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
