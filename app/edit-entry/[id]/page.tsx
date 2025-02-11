@@ -16,6 +16,7 @@ export default function EditEntryPage({
   params,
 }: {
   params: { id: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
